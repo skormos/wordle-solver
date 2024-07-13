@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"regexp"
@@ -40,20 +41,25 @@ func (s *alphabetSet) String() string {
 }
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	if err := run(os.Stdout, os.Args); err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func run(writer io.Writer, _ []string) error {
+	logger := slog.New(slog.NewTextHandler(writer, nil))
 
 	allowedWords, err := allowedList("allowed.txt")
 	if err != nil {
-		logger.Error("Could not read allowed list.", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("could not read allowed words list: %w", err)
 	}
 
 	testList := make([]string, 0, len(allowedWords))
 
 	answers, err := answersSet("answers.txt")
 	if err != nil {
-		logger.Error("Could not read answers list.", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("while loading answer words list: %w", err)
 	}
 
 	for _, word := range allowedWords {
@@ -73,14 +79,13 @@ func main() {
 		fmt.Print(fmt.Sprintf("%d > ", i+1))
 		text, err := reader.ReadString('\n')
 		if err != nil {
-			logger.Error("Could not read input.", "error", err)
-			os.Exit(1)
+			return fmt.Errorf("while reading user input: %w", err)
 		}
 
 		input := strings.Split(text[:len(text)-1], " ")
 		if len(input) == 1 || input[0] == input[1] {
-			_, _ = fmt.Fprintf(os.Stdout, "Congratulations!")
-			os.Exit(0)
+			_, _ = fmt.Fprintf(writer, "Congratulations!")
+			return nil
 		}
 		for c := 0; c < 5; c++ {
 			if string(input[1][c]) == string(input[0][c]) { // letter is in the correct spot
@@ -107,13 +112,16 @@ func main() {
 					}
 				}
 				remaining = append(remaining, word)
-				_, _ = fmt.Fprintf(os.Stdout, "%s\n", word)
 			}
 		}
 		testList = remaining
 		sort.Strings(testList)
-		_, _ = fmt.Fprintf(os.Stdout, "--- Remaining words %d\n", len(testList))
+		_, _ = fmt.Fprintf(writer, "--- Remaining words ---\n")
+		_, _ = fmt.Fprintf(writer, "%s\n", formatRemaining(testList, 5))
+		_, _ = fmt.Fprintf(writer, "=== Count :: %d\n", len(testList))
 	}
+
+	return nil
 }
 
 func allowedList(filename string) ([]string, error) {
@@ -170,4 +178,19 @@ func newAlphabetSet() alphabetSet {
 	}
 
 	return out
+}
+
+func formatRemaining(remaining []string, width int) string {
+	output := ""
+
+	for count, word := range remaining {
+		output += word
+		if (count+1)%width == 0 {
+			output += "\n"
+		} else {
+			output += " "
+		}
+	}
+
+	return output
 }
