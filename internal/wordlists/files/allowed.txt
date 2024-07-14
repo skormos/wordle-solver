@@ -12,6 +12,12 @@ shone
 scrum
 apply
 retro
+kazoo
+balsa
+pious
+snafu
+laser
+guano
 truce
 blimp
 fewer

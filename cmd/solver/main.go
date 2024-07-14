@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/skormos/wordle-solver/internal/wordlists"
 	"io"
 	"log/slog"
 	"os"
@@ -50,18 +51,20 @@ func main() {
 func run(writer io.Writer, _ []string) error {
 	logger := slog.New(slog.NewTextHandler(writer, nil))
 
-	allowedWords, err := allowedList("allowed.txt")
-	if err != nil {
-		return fmt.Errorf("could not read allowed words list: %w", err)
-	}
+	/**
+	* 1. Collect file sources
+	* 2. Create initial word list
+	* 3. Create initial regex
+	  4. Read word and match result
+	* 5. Update regex
+	* 6. Apply regex to word list
+	* 7. Go to 4.
+	*/
+
+	allowedWords := wordlists.AllowedList()
+	answers := wordlists.AnswerSet()
 
 	testList := make([]string, 0, len(allowedWords))
-
-	answers, err := answersSet("answers.txt")
-	if err != nil {
-		return fmt.Errorf("while loading answer words list: %w", err)
-	}
-
 	for _, word := range allowedWords {
 		if _, ok := answers[word]; !ok {
 			testList = append(testList, word)
@@ -122,40 +125,6 @@ func run(writer io.Writer, _ []string) error {
 	}
 
 	return nil
-}
-
-func allowedList(filename string) ([]string, error) {
-	b, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("reading file %w", err)
-	}
-
-	allowedWords := make([]string, 0, 3000)
-	scanner := bufio.NewScanner(strings.NewReader(string(b)))
-	for scanner.Scan() {
-		allowedWords = append(allowedWords, strings.ToUpper(scanner.Text()))
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("splitting lines: %w", err)
-	}
-	return allowedWords, nil
-}
-
-func answersSet(filename string) (map[string]struct{}, error) {
-	b, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, fmt.Errorf("reading file %w", err)
-	}
-	previousWords := make(map[string]struct{})
-	scanner := bufio.NewScanner(strings.NewReader(string(b)))
-	for scanner.Scan() {
-		word := strings.Split(strings.ToUpper(scanner.Text()), " ")[0]
-		previousWords[word] = struct{}{}
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("splitting lines: %w", err)
-	}
-	return previousWords, nil
 }
 
 func calcRegex(sets []alphabetSet) string {
