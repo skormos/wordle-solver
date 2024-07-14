@@ -6,6 +6,14 @@ import (
 	_ "embed"
 	"fmt"
 	"strings"
+	"time"
+)
+
+const (
+	answerDateFormat  = "01/02/06"
+	answerIndexWord   = 0
+	answerIndexPuzzle = 1
+	answerIndexDate   = 2
 )
 
 //go:embed files/allowed.txt
@@ -28,12 +36,19 @@ func AllowedList() []string {
 }
 
 // AnswerSet reads from the local embedded file and create a string set of words that were previous answers.
-func AnswerSet() map[string]struct{} {
+func AnswerSet(untilDate time.Time) map[string]struct{} {
 	answerWords := make(map[string]struct{})
 	scanner := bufio.NewScanner(strings.NewReader(answersTextString))
 	for scanner.Scan() {
-		word := strings.Split(strings.ToUpper(scanner.Text()), " ")[0]
-		answerWords[word] = struct{}{}
+		answer := strings.Split(strings.ToUpper(scanner.Text()), " ")
+		word := answer[answerIndexWord]
+		date, err := time.Parse(answerDateFormat, answer[answerIndexDate])
+		if err != nil {
+			panic(fmt.Errorf("parsing answer date: %w", err))
+		}
+		if date.Before(untilDate) {
+			answerWords[word] = struct{}{}
+		}
 	}
 	if err := scanner.Err(); err != nil {
 		panic(fmt.Errorf("splitting answer text lines via Scanner: %w", err))

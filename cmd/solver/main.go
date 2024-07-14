@@ -3,13 +3,15 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/skormos/wordle-solver/internal/wordlists"
 	"io"
 	"log/slog"
 	"os"
 	"regexp"
 	"sort"
 	"strings"
+	"time"
+
+	"github.com/skormos/wordle-solver/internal/wordlists"
 )
 
 type alphabetSet struct {
@@ -62,7 +64,12 @@ func run(writer io.Writer, _ []string) error {
 	*/
 
 	allowedWords := wordlists.AllowedList()
-	answers := wordlists.AnswerSet()
+	puzzleDate := time.Now()
+	//puzzleDate, err := time.Parse(time.DateOnly, "2024-02-21")
+	//if err != nil {
+	//	return fmt.Errorf("could not parse puzzle date: %w", err)
+	//}
+	answers := wordlists.AnswerSet(puzzleDate)
 
 	testList := make([]string, 0, len(allowedWords))
 	for _, word := range allowedWords {
