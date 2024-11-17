@@ -14,6 +14,12 @@ import (
 	"github.com/skormos/wordle-solver/internal/wordlists"
 )
 
+const (
+	MATCH_GRAY = iota
+	MATCH_YELLOW
+	MATCH_GREEN
+)
+
 type alphabetSet struct {
 	store map[string]struct{}
 }
@@ -93,20 +99,36 @@ func run(writer io.Writer, _ []string) error {
 		}
 
 		input := strings.Split(text[:len(text)-1], " ")
+		if input[0] == "" {
+			i--
+			continue
+		}
 		if len(input) == 1 || input[0] == input[1] {
 			_, _ = fmt.Fprintf(writer, "Congratulations!")
 			return nil
 		}
 		for c := 0; c < 5; c++ {
-			if string(input[1][c]) == string(input[0][c]) { // letter is in the correct spot
-				alphaSets[c].keepOnly(string(input[0][c]))
-			} else if string(input[1][c]) == "*" { // letter is in the word, not this spot
-				containsSet[string(input[0][c])] = struct{}{}
-				alphaSets[c].delete(string(input[0][c]))
-			} else if string(input[1][c]) == "_" { // letter is not in this word
+			guess := string(input[0][c])
+			result := string(input[1][c])
+			match := -1
+			switch result {
+			case "_":
+				match = MATCH_GRAY
+			case "*":
+				match = MATCH_YELLOW
+			default:
+				match = MATCH_GREEN
+			}
+			switch match {
+			case MATCH_GRAY: // delete from all
 				for _, set := range alphaSets {
-					set.delete(string(input[0][c]))
+					set.delete(guess)
 				}
+			case MATCH_YELLOW: // delete from this set only
+				containsSet[guess] = struct{}{}
+				alphaSets[c].delete(guess)
+			case MATCH_GREEN: // delete from others
+				alphaSets[c].keepOnly(guess)
 			}
 		}
 
